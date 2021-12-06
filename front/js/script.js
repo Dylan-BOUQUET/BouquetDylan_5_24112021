@@ -1,8 +1,8 @@
 // *** Affiche tout les produits
 let showProduct = (data) => {
-    let items = document.getElementById('items')
-    for (let i in data) {
-        items.innerHTML += `
+  let items = document.getElementById('items')
+  for (let i in data) {
+    items.innerHTML += `
     <a href="./product.html?id=${data[i]._id}">
       <article>
         <img src="${data[i].imageUrl}" alt="${data[i].altTxt}">
@@ -10,12 +10,12 @@ let showProduct = (data) => {
         <p class="productDescription">${data[i].description}</p>
       </article>
     </a>`
-    }
+  }
 }
 
 // *** Connexion à l'API
 fetch('http://localhost:3000/api/products')
-    .then((response) => response.json())
-    .then((data) => {
-        showProduct(data)
-    })
+  .then((response) => response.json())
+  .then((data) => {
+    showProduct(data)
+  })

@@ -1,16 +1,9 @@
-main();
-
 function main() {
-    displayOrderIdAndPrice();
-}
-
-function displayOrderIdAndPrice() {
-    const totalConfirmation = document.querySelector(".total span");
-    const orderId = document.querySelector(".orderid span");
-
-    totalConfirmation.innerText = localStorage.getItem("total");
-    orderId.innerText = localStorage.getItem("orderId");
-
-    // On vide le localStorage pour recommencer plus tard le processus d'achat
+    const idNode = document.getElementById("orderId");
+    idNode.innerText = localStorage.getItem("orderId");
+    console.log(localStorage.getItem("orderId"))
+    // On vide le stockage //
     localStorage.clear();
 }
+
+main();
