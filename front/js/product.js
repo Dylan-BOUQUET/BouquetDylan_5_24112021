@@ -1,129 +1,158 @@
-var str = window.location.href;
-var url = new URL(str);
-var idProduct = url.searchParams.get("id");
-console.log(idProduct);
-let article = "";
+let name, price, imageUrl, description, colors, altTxt;
 
-const colorPicked = document.querySelector("#colors");
-const quantityPicked = document.querySelector("#quantity");
+// Récupération de l'id du produit passé dans l'url
+const params = new URLSearchParams(window.location.search);
+const id = params.get('id');
 
-getArticle();
+const buttSubmit = document.getElementById("addToCart");
+const select = document.getElementById("colors");
 
-// Récupération des articles de l'API
-function getArticle() {
-    fetch("http://localhost:3000/api/products/" + idProduct)
-        .then((res) => {
-            return res.json();
-        })
+request();
 
-        // Répartition des données de l'API dans le DOM
-        .then(async function (resultatAPI) {
-            article = await resultatAPI;
-            console.table(article);
-            if (article) {
-                getPost(article);
-            }
-        })
-        .catch((error) => {
-            console.log("Erreur de la requête API");
-        })
-}
+/**
+ * Envoie une requète au back-end pour récupérer les infos produit pour l'id récupéré dans l'url
+ */
+function request() {
+    fetch(`http://localhost:3000/api/products/${id}`)
+        .then((response) => response.json()
+            .then((data) => {
+                name = data.name;
+                price = data.price;
+                imageUrl = data.imageUrl;
+                description = data.description;
+                colors = data.colors;
+                altTxt = data.altTxt;
+                makeItem();
+            })).catch(() => error());
+};
 
-function getPost(article) {
-    // Insertion de l'image
-    let productImg = document.createElement("img");
-    document.querySelector(".item__img").appendChild(productImg);
-    productImg.src = article.imageUrl;
-    productImg.alt = article.altTxt;
+/**
+ * Implémente le code HTML avec les valeurs reçues de l'API.
+ * @param { String } name 
+ * @param { Number } price 
+ * @param { String } imageUrl 
+ * @param { String } description 
+ * @param { Array } colors (Array of Strings)
+ * @param { String } altTxt 
+ */
+function makeItem() {
+    document.title = name;
+    const newImg = document.createElement("img");
+    newImg.setAttribute("src", imageUrl);
+    newImg.setAttribute("alt", altTxt);
+    const parentImg = document.querySelector(".item__img");
+    parentImg.appendChild(newImg);
 
-    // Modification du titre "h1"
-    let productName = document.getElementById('title');
-    productName.innerHTML = article.name;
+    const h1 = document.getElementById("title");
+    h1.innerText = name;
 
-    // Modification du prix
-    let productPrice = document.getElementById('price');
-    productPrice.innerHTML = article.price;
+    const spanPrice = document.getElementById("price");
+    spanPrice.innerText = price;
 
-    // Modification de la description
-    let productDescription = document.getElementById('description');
-    productDescription.innerHTML = article.description;
+    const p = document.getElementById("description");
+    p.innerText = description;
 
-    // Insertion des options de couleurs
-    for (let colors of article.colors) {
-        console.table(colors);
-        let productColors = document.createElement("option");
-        document.querySelector("#colors").appendChild(productColors);
-        productColors.value = colors;
-        productColors.innerHTML = colors;
+    for (const color of colors) {
+        const newOption = document.createElement("option");
+        newOption.setAttribute("value", color);
+        newOption.innerText = color;
+        select.appendChild(newOption);
     }
-    addToCart(article);
 }
 
-//Gestion du panier
-function addToCart(article) {
-    const btn_envoyerPanier = document.querySelector("#addToCart");
+buttSubmit.addEventListener('click', () => {
+    const colorChoosen = select.value;
+    const inputQuantity = document.getElementById("quantity");
+    const quantity = inputQuantity.value;
+    if (colorChoosen == "" && (quantity < 1 || quantity > 100)) {
+        applyStyle(select, "red", 2, inputQuantity, "red", 2);
+        alert("Merci de choisir un colori parmis ceux disponibles et une quantité (attention, 100 pièces maximum !).");
+    }
+    else if (colorChoosen == "") {
+        applyStyle(select, "red", 2, inputQuantity, "black", 1);
+        alert("N'oubliez pas de choisir un colori ! ;-D");
+    }
+    else if (quantity < 1 || quantity > 100) {
+        if (quantity > 100) {
+            alert("Attention, vous ne pouvez pas commander plus de 100 canapés !");
+        }
+        else {
+            alert("Merci de saisir un nombre d'articles désirés valide.")
+        }
+        applyStyle(select, "black", 1, inputQuantity, "red", 2);
+    }
+    else {
+        applyStyle(select, "black", 1, inputQuantity, "black", 1);
 
-    //Ecouter le panier avec 2 conditions couleur non nulle et quantité entre 1 et 100
-    btn_envoyerPanier.addEventListener("click", (event) => {
-        if (quantityPicked.value > 0 && quantityPicked.value <= 100 && quantityPicked.value != 0) {
-
-            //Recupération du choix de la couleur
-            let choixCouleur = colorPicked.value;
-
-            //Recupération du choix de la quantité
-            let choixQuantite = quantityPicked.value;
-
-            //Récupération des options de l'article à ajouter au panier
-            let optionsProduit = {
-                idProduit: idProduct,
-                couleurProduit: choixCouleur,
-                quantiteProduit: Number(choixQuantite),
-                nomProduit: article.name,
-                prixProduit: article.price,
-                descriptionProduit: article.description,
-                imgProduit: article.imageUrl,
-                altImgProduit: article.altTxt
-            };
-
-            //Initialisation du local storage
-            let produitLocalStorage = JSON.parse(localStorage.getItem("produit"));
-
-            //fenêtre pop-up
-            const popupConfirmation = () => {
-                if (window.confirm(`Votre commande de ${choixQuantite} ${article.name} ${choixCouleur} est ajoutée au panier
-Pour consulter votre panier, cliquez sur OK`)) {
-                    window.location.href = "cart.html";
+        // On pourrait stocker uniquement idSpecific, id, colorChoosen et quantity mais l'idée est
+        // de ne pas faire une nouvelle requête à l'API (hormis la requête POST) sur la page panier.
+        const idSpecific = id + colorChoosen;
+        const product = {
+            idSpec: idSpecific,
+            idItem: id,
+            nameItem: name,
+            colorItem: colorChoosen,
+            qtity: quantity,
+            priceItem: price,
+            imageUrlItem: imageUrl,
+            altTxtItem: altTxt
+        };
+        let productInLocalStorage = JSON.parse(localStorage.getItem("products"));
+        if (productInLocalStorage) {
+            const index = productInLocalStorage.findIndex(item => item.idSpec == idSpecific)
+            if (index != -1) {
+                const newQuantity = Number(productInLocalStorage[index].qtity) + Number(quantity);
+                const newProduct = {
+                    idSpec: idSpecific,
+                    idItem: id,
+                    nameItem: name,
+                    colorItem: colorChoosen,
+                    qtity: newQuantity,
+                    priceItem: price,
+                    imageUrlItem: imageUrl,
+                    altTxtItem: altTxt
                 }
+                productInLocalStorage.splice(index, 1, newProduct);
             }
-
-            //Importation dans le local storage
-            //Si le panier comporte déjà au moins 1 article
-            if (produitLocalStorage) {
-                const resultFind = produitLocalStorage.find(
-                    (el) => el.idProduit === idProduct && el.couleurProduit === choixCouleur);
-                //Si le produit commandé est déjà dans le panier
-                if (resultFind) {
-                    let newQuantite =
-                        parseInt(optionsProduit.quantiteProduit) + parseInt(resultFind.quantiteProduit);
-                    resultFind.quantiteProduit = newQuantite;
-                    localStorage.setItem("produit", JSON.stringify(produitLocalStorage));
-                    console.table(produitLocalStorage);
-                    popupConfirmation();
-                    //Si le produit commandé n'est pas dans le panier
-                } else {
-                    produitLocalStorage.push(optionsProduit);
-                    localStorage.setItem("produit", JSON.stringify(produitLocalStorage));
-                    console.table(produitLocalStorage);
-                    popupConfirmation();
-                }
-                //Si le panier est vide
-            } else {
-                produitLocalStorage = [];
-                produitLocalStorage.push(optionsProduit);
-                localStorage.setItem("produit", JSON.stringify(produitLocalStorage));
-                console.table(produitLocalStorage);
-                popupConfirmation();
+            else {
+                productInLocalStorage.push(product);
             }
         }
-    });
+        else {
+            productInLocalStorage = [];
+            productInLocalStorage.push(product);
+        }
+        localStorage.setItem("products", JSON.stringify(productInLocalStorage));
+        alert("Votre produit a bien été ajouté au panier");
+    }
+})
+
+/**
+ * Cette fonction applique le style demandé aux 2 input de la page.
+ * @param { Object } element1 
+ * @param { String } color1 
+ * @param { Number } size1 
+ * @param { Object } element2 
+ * @param { String } color2 
+ * @param { Number } size2 
+ */
+function applyStyle(element1, color1, size1, element2, color2, size2) {
+    element1.style.borderColor = color1;
+    element1.style.borderWidth = `${size1}px`;
+    element2.style.borderColor = color2;
+    element2.style.borderWidth = `${size2}px`;
+}
+
+/**
+ * En cas d'échec de la requète, remplace l'article par un message d'erreur
+ */
+function error() {
+    const section = document.querySelector(".item");
+    const article = document.querySelector("article");
+    section.removeChild(article);
+    const newPMessage = document.createElement("p");
+    newPMessage.innerHTML = "Oups !<br>Something went wrong on dirait...";
+    newPMessage.style.textAlign = "center";
+    newPMessage.style.color = "black";
+    section.appendChild(newPMessage);
 }
