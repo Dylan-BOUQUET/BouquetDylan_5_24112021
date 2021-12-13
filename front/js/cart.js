@@ -319,7 +319,7 @@ else {
      */
     function finalisation(orderId) {
         localStorage.clear();
-        document.location.href = `confirmation.html?id=${orderId}`;
+        document.location.href = `confirmation.html?orderId=${orderId}`;
     }
 
     // Regex testées sur le site https://regex101.com/ --- On aurait pu placer ces vérifications dans le html mais le choix retenu est de ne pas toucher au html.
